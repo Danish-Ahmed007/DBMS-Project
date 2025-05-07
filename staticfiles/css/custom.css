@@ -1,0 +1,41 @@
+/* Custom CSS for E-Commerce Website */
+
+/* Product card hover effect */
+.card {
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Product image container */
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Footer styling */
+footer {
+    margin-top: 50px;
+}
+
+/* Cart quantity input */
+.quantity-input {
+    max-width: 80px;
+}
+
+/* Category badge styling */
+.category-badge {
+    background-color: #f8f9fa;
+    color: #212529;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.category-badge:hover {
+    background-color: #e9ecef;
+}
