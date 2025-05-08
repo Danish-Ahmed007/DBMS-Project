@@ -1,0 +1,169 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Checkout | E-Commerce Store{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Checkout</h1>
+
+<div class="row">
+    <!-- Order Summary -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Order Items</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cart.items.all %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="img-thumbnail me-2" style="max-width: 60px;">
+                                        {% endif %}
+                                        {{ item.product.name }}
+                                    </div>
+                                </td>
+                                <td>${{ item.product.price }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>${{ item.subtotal }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">Total:</td>
+                                <td class="fw-bold">${{ cart.total_price }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Shipping Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="checkout-form">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        <p><strong>Username:</strong> {{ user.username }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                    </div>
+
+                    <!-- Location Confirmation -->
+                    <div class="mb-4">
+                        <label for="confirmed_location" class="form-label">Confirm your current location</label>
+                        <input type="text" class="form-control" id="confirmed_location" name="confirmed_location" value="{{ user.location }}" required>
+                        <div class="form-text text-muted">
+                            For security verification, please confirm your current location
+                        </div>
+                    </div>
+
+                    <!-- Shipping Address -->
+                    <div class="mb-3">
+                        <label for="shipping_address" class="form-label">Shipping Address</label>
+                        <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required>{{ user.location }}</textarea>
+                    </div>
+
+                    <!-- Billing Address -->
+                    <div class="mb-3">
+                        <label for="billing_address" class="form-label">Billing Address</label>
+                        <textarea class="form-control" id="billing_address" name="billing_address" rows="3" required>{{ user.location }}</textarea>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="same_address" checked>
+                            <label class="form-check-label" for="same_address">
+                                Billing address same as shipping
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Completion -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Complete Order</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p>By placing this order, you agree to our terms and conditions.</p>
+                </div>
+                
+                <!-- Checkout buttons -->
+                <div class="d-grid gap-2">
+                    <button type="submit" form="checkout-form" class="btn btn-success" id="place-order-btn">
+                        Place Order
+                    </button>
+                    <a href="{% url 'cart' %}" class="btn btn-outline-secondary">Return to Cart</a>
+                </div>
+
+                <!-- Loading animation (hidden by default) -->
+                <div id="processing-overlay" class="text-center mt-4 d-none">
+                    <div class="spinner-border text-primary mb-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Processing Transaction...</p>
+                    <p class="text-muted small">This may take a few moments while we verify your order</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle same address checkbox
+        const sameAddressCheckbox = document.getElementById('same_address');
+        const shippingAddressField = document.getElementById('shipping_address');
+        const billingAddressField = document.getElementById('billing_address');
+
+        // Update billing address when shipping address changes if checkbox is checked
+        shippingAddressField.addEventListener('input', function() {
+            if (sameAddressCheckbox.checked) {
+                billingAddressField.value = shippingAddressField.value;
+            }
+        });
+
+        // Handle checkbox changes
+        sameAddressCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                billingAddressField.value = shippingAddressField.value;
+                billingAddressField.disabled = true;
+            } else {
+                billingAddressField.disabled = false;
+            }
+        });
+
+        // Initial state
+        if (sameAddressCheckbox.checked) {
+            billingAddressField.disabled = true;
+        }
+
+        // Show loading animation on form submit
+        document.getElementById('checkout-form').addEventListener('submit', function() {
+            document.getElementById('place-order-btn').disabled = true;
+            document.getElementById('processing-overlay').classList.remove('d-none');
+        });
+    });
+</script>
+{% endblock %}
