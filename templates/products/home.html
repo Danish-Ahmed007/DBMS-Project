@@ -1,0 +1,72 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Home | E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded">
+    <h1 class="display-4">Welcome to E-Commerce Store</h1>
+    <p class="lead">Discover our wide range of products at competitive prices.</p>
+    <hr class="my-4">
+    <p>Browse our categories or search for specific products.</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'product_list' %}" role="button">Browse Products</a>
+</div>
+
+<!-- Featured Categories -->
+<section class="my-5">
+    <h2 class="mb-4">Categories</h2>
+    <div class="row">
+        {% for category in categories %}
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ category.name }}</h5>
+                    <p class="card-text">{{ category.description|truncatechars:80 }}</p>
+                    <a href="{% url 'product_list' %}?category={{ category.id }}" class="btn btn-outline-primary">View Products</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col">
+            <p>No categories found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Featured Products -->
+<section class="my-5">
+    <h2 class="mb-4">Featured Products</h2>
+    <div class="row">
+        {% for product in featured_products %}
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                {% else %}
+                <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <span>No Image</span>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text">{{ product.description|truncatechars:80 }}</p>
+                    <p class="card-text fw-bold">${{ product.price }}</p>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'product_detail' product.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'add_to_cart' product.id %}" class="btn btn-sm btn-success">Add to Cart</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col">
+            <p>No featured products found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
