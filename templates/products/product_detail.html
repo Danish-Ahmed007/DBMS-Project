@@ -1,0 +1,85 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ product.name }} | E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-5 mb-4">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" class="img-fluid rounded" alt="{{ product.name }}">
+        {% else %}
+        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 400px;">
+            <h3>No Image Available</h3>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-7">
+        <h1 class="mb-3">{{ product.name }}</h1>
+        
+        <p class="text-muted mb-3">
+            Category: <a href="{% url 'product_list' %}?category={{ product.category.id }}">{{ product.category.name }}</a>
+        </p>
+        
+        <h3 class="mb-3">${{ product.price }}</h3>
+        
+        <div class="mb-3">
+            <span class="mb-2 d-block">Availability:</span>
+            {% if product.stock > 10 %}
+            <span class="badge bg-success p-2">In Stock ({{ product.stock }} available)</span>
+            {% elif product.stock > 0 %}
+            <span class="badge bg-warning text-dark p-2">Low Stock (only {{ product.stock }} left)</span>
+            {% else %}
+            <span class="badge bg-danger p-2">Out of Stock</span>
+            {% endif %}
+        </div>
+        
+        <div class="mb-4">
+            <h5>Description:</h5>
+            <div class="p-3 bg-light rounded">
+                {{ product.description|linebreaks }}
+            </div>
+        </div>
+        
+        {% if user.is_authenticated and product.stock > 0 %}
+        <div class="mb-4">
+            <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary btn-lg">Add to Cart</a>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-lg ms-2">Continue Shopping</a>
+        </div>
+        {% elif not user.is_authenticated %}
+        <div class="mb-4 alert alert-info">
+            Please <a href="{% url 'login' %}">login</a> to add this item to your cart.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Related Products -->
+{% if related_products %}
+<section class="mt-5">
+    <h3 class="mb-4">Related Products</h3>
+    <div class="row">
+        {% for related in related_products %}
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100">
+                {% if related.image %}
+                <img src="{{ related.image.url }}" class="card-img-top" alt="{{ related.name }}">
+                {% else %}
+                <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 150px;">
+                    <span>No Image</span>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ related.name }}</h5>
+                    <p class="card-text">${{ related.price }}</p>
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="{% url 'product_detail' related.id %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

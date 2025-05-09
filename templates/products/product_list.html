@@ -1,0 +1,114 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Products | E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Categories Sidebar -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Categories</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'product_list' %}" class="list-group-item list-group-item-action {% if not request.GET.category %}active{% endif %}">
+                    All Products
+                </a>
+                {% for category in categories %}
+                <a href="{% url 'product_list' %}?category={{ category.id }}" 
+                   class="list-group-item list-group-item-action {% if request.GET.category|add:'0' == category.id %}active{% endif %}">
+                    {{ category.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products Grid -->
+    <div class="col-md-9">
+        <h2 class="mb-4">{% if request.GET.category %}{{ products.0.category.name }}{% else %}All Products{% endif %}</h2>
+        
+        {% if products %}
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                    {% else %}
+                    <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <span>No Image</span>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text">{{ product.description|truncatechars:100 }}</p>
+                        <p class="card-text fw-bold">${{ product.price }}</p>
+                        <p class="card-text {% if product.stock > 10 %}text-success{% elif product.stock > 0 %}text-warning{% else %}text-danger{% endif %}">
+                            {% if product.stock > 10 %}
+                                In Stock ({{ product.stock }})
+                            {% elif product.stock > 0 %}
+                                Low Stock ({{ product.stock }} left)
+                            {% else %}
+                                Out of Stock
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'product_detail' product.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                            {% if user.is_authenticated and product.stock > 0 %}
+                            <a href="{% url 'add_to_cart' product.id %}" class="btn btn-sm btn-success">Add to Cart</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page=1">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="alert alert-info">
+            No products found in this category.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
