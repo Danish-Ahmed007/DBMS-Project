@@ -1,0 +1,34 @@
+{% extends 'base/base.html' %} {% block title %}Transaction Verification Required | E-Commerce Store{% endblock %} {% block content %}
+Transaction Verification Required
+This transaction has been temporarily halted for security verification.
+A verification email has been sent to your registered email address. Please check your inbox and follow the instructions to verify this purchase. Your order will remain on hold for 30 minutes.
+
+Order Summary
+Total Amount: ${{ transaction.order_total }}
+
+Time: {{ transaction.transaction_time|date:"F j, Y, g:i a" }}
+
+Items:
+{% for item in confirmation.cart_snapshot.items %} {% endfor %}
+Item	Quantity	Price	Subtotal
+{{ item.product_name }}	{{ item.quantity }}	${{ item.price }}	${{ item.subtotal }}
+Total:	${{ confirmation.cart_snapshot.total }}
+Why is verification required?
+Our automated fraud detection system has flagged this transaction for additional verification to protect your security.
+
+Important: Please verify this purchase by clicking the link in the verification email we sent to {{ transaction.user.email }}.
+
+If you don't receive the email within a few minutes, please check your spam folder.
+
+{% if confirmation.is_expired %}
+This verification link has expired. Please try your purchase again.
+
+{% elif confirmation.is_confirmed %}
+Transaction confirmed! Your order is being processed.
+
+{% endif %}
+Transaction ID: {{ transaction.id }}
+Verification expires: {{ confirmation.expiry_time|date:"F j, Y, g:i a" }}
+
+Return to Homepage
+{% endblock %}
