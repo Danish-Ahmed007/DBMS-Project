@@ -1,0 +1,76 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Order Management | E-Commerce Store{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Order Management</h1>
+
+{% if orders %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.order_date|date:"F j, Y, g:i a" }}</td>
+                <td>{{ order.user.username }}</td>
+                <td>
+                    <span class="badge 
+                        {% if order.status == 'Pending' %}bg-warning text-dark
+                        {% elif order.status == 'Processing' %}bg-info text-dark
+                        {% elif order.status == 'Accepted' %}bg-primary
+                        {% elif order.status == 'Shipped' %}bg-secondary
+                        {% elif order.status == 'Delivered' %}bg-success
+                        {% elif order.status == 'Completed' %}bg-success
+                        {% elif order.status == 'Cancelled' %}bg-danger
+                        {% endif %}">
+                        {{ order.status }}
+                    </span>
+                </td>
+                <td>${{ order.total_price }}</td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ order.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                            Actions
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ order.id }}">
+                            <li><a class="dropdown-item" href="{% url 'order_detail' order.id %}">View Details</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Change Status</h6></li>
+                            
+                            {% for status_value, status_label in order.STATUS_CHOICES %}
+                            <li>
+                                <form method="post" action="{% url 'update_order_status' order.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="{{ status_value }}">
+                                    <button type="submit" class="dropdown-item {% if order.status == status_value %}active{% endif %}">
+                                        {{ status_label }}
+                                    </button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <h4>No orders found.</h4>
+    <p>No orders have been placed yet.</p>
+</div>
+{% endif %}
+{% endblock %}
