@@ -1,0 +1,31 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Your Profile | E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Your Profile</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Account Information</h5>
+                        <p><strong>Username:</strong> {{ user.username }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Location:</strong> {{ user.location }}</p>
+                        <p><strong>Date Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Order Summary</h5>
+                        <p><strong>Total Orders:</strong> {{ user.orders.count }}</p>
+                        <a href="{% url 'order_history' %}" class="btn btn-outline-primary">View Order History</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
