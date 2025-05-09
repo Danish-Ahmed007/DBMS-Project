@@ -1,0 +1,118 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Order #{{ order.id }} | E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Order #{{ order.id }}</h1>
+    <a href="{% url 'order_history' %}" class="btn btn-outline-primary">Back to Orders</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Order Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Order Date:</strong> {{ order.order_date|date:"F j, Y, g:i a" }}</p>
+                <p><strong>Last Updated:</strong> {{ order.updated_at|date:"F j, Y, g:i a" }}</p>
+                <p>
+                    <strong>Status:</strong> 
+                    <span class="badge 
+                        {% if order.status == 'Pending' %}bg-warning text-dark
+                        {% elif order.status == 'Processing' %}bg-info text-dark
+                        {% elif order.status == 'Accepted' %}bg-primary
+                        {% elif order.status == 'Shipped' %}bg-secondary
+                        {% elif order.status == 'Delivered' %}bg-success
+                        {% elif order.status == 'Completed' %}bg-success
+                        {% elif order.status == 'Verification' %}bg-warning text-dark
+                        {% elif order.status == 'Cancelled' %}bg-danger
+                        {% endif %}">
+                        {{ order.get_status_display }}
+                    </span>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Customer:</strong> {{ order.user.username }}</p>
+                <p><strong>Shipping Location:</strong> {{ order.user.location }}</p>
+            </div>
+        </div>
+
+        {% if order.status == 'Verification' %}
+        <div class="alert alert-warning mt-3">
+            <h5 class="alert-heading"><i class="bi bi-shield-exclamation"></i> This order requires verification</h5>
+            <p>For your security, this order has been placed on hold pending verification. Please check your email for a verification link to confirm this transaction.</p>
+            <p>This verification step helps protect your account from fraudulent activities.</p>
+        </div>
+        {% endif %}
+
+        <!-- Order Status Progress Bar -->
+        {% if order.status != 'Cancelled' and order.status != 'Verification' %}
+        <div class="mt-4">
+            <h6>Order Progress:</h6>
+            <div class="progress">
+                {% if order.status == 'Pending' %}
+                <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Pending</div>
+                {% elif order.status == 'Processing' %}
+                <div class="progress-bar bg-info text-dark" role="progressbar" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">Processing</div>
+                {% elif order.status == 'Accepted' %}
+                <div class="progress-bar bg-primary" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100">Accepted</div>
+                {% elif order.status == 'Shipped' %}
+                <div class="progress-bar bg-secondary" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">Shipped</div>
+                {% elif order.status == 'Delivered' or order.status == 'Completed' %}
+                <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">{{ order.status }}</div>
+                {% endif %}
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+                <small>Order Placed</small>
+                <small>Processing</small>
+                <small>Accepted</small>
+                <small>Shipped</small>
+                <small>Delivered</small>
+            </div>
+        </div>
+        {% elif order.status == 'Cancelled' %}
+        <div class="alert alert-danger mt-3">
+            <strong>This order has been cancelled.</strong>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Order Items</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>${{ item.product_price }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ item.subtotal }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">Total:</td>
+                        <td class="fw-bold">${{ order.total_price }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
