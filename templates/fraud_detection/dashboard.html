@@ -1,0 +1,51 @@
+{% extends 'base/base.html' %} {% block title %}Fraud Detection Dashboard | E-Commerce Store{% endblock %} {% block extra_css %} {% endblock %} {% block content %}
+Fraud Detection Dashboard
+Download Transaction Data
+Total Transactions
+{{ total_transactions }}
+Flagged Transactions
+{{ flagged_count }}
+{{ flagged_percent }}% of total
+
+Confirmed
+{{ confirmed_count }}
+Expired
+{{ expired_count }}
+Recent Flagged Transactions
+{% if recent_flagged %}
+{% for log in recent_flagged %} {% endfor %}
+ID	User	Amount	Risk Score	Time	Actions
+{{ log.transaction.id }}	{{ log.transaction.user.username }}	${{ log.transaction.order_total }}	{{ log.risk_score }}	{{ log.detection_time|date:"M d, H:i" }}	View
+{% else %}
+No flagged transactions yet.
+
+{% endif %}
+Pending Confirmations
+{% if pending_confirmations %}
+{% for confirmation in pending_confirmations %} {% endfor %}
+ID	User	Amount	Expires	Actions
+{{ confirmation.transaction.id }}	{{ confirmation.transaction.user.username }}	${{ confirmation.transaction.order_total }}	{{ confirmation.expiry_time|date:"M d, H:i" }}	Review
+{% else %}
+No pending confirmations.
+
+{% endif %}
+Flag Reason Breakdown
+{% if reason_counts %}
+{% for reason, count in reason_counts.items %}
+{{ reason }}
+{{ count }} occurrences
+
+{% endfor %}
+{% else %}
+No flag reasons to display.
+
+{% endif %}
+About Fraud Detection Data
+The transaction data being collected can be used to train machine learning models in future phases of this system. The current rules-based approach serves as a foundation for AI-based fraud detection.
+
+To prepare for future ML implementation:
+
+Download transaction data regularly using the button above
+Monitor which flags are most effective vs false positives
+Collect enough labeled data (flagged vs legitimate transactions)
+{% endblock %}
