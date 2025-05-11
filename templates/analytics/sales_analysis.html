@@ -1,0 +1,335 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_analytics_filters %}
+
+{% block title %}Sales Analysis | E-Commerce Store{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+    .percentage-badge {
+        background-color: #007bff;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Sales Analysis</h1>
+            <p class="text-muted">Detailed sales performance analytics</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="?days=7" class="btn btn-sm btn-outline-primary {% if days == 7 %}active{% endif %}">Last 7 Days</a>
+                <a href="?days=30" class="btn btn-sm btn-outline-primary {% if days == 30 %}active{% endif %}">Last 30 Days</a>
+                <a href="?days=90" class="btn btn-sm btn-outline-primary {% if days == 90 %}active{% endif %}">Last 90 Days</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Navigation -->
+    <div class="row mb-4">
+        <div class="col">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'analytics_dashboard' %}">Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'sales_analysis' %}">Sales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'product_analytics' %}">Products</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'customer_analytics' %}">Customers</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'fraud_analytics' %}">Fraud</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Category Sales Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Sales by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day of Week Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Sales by Day of Week</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="dowChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Hourly Distribution -->
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Sales by Hour of Day</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales by Category Table -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Sales by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                    <th>% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in sales_by_category %}
+                                <tr>
+                                    <td>{{ category.product__category__name|default:"Unknown" }}</td>
+                                    <td>{{ category.units }}</td>
+                                    <td>${{ category.revenue|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ category.percentage|default:"0" }}%</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No category sales data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse JSON data directly with proper error handling
+        let categoryNames = [];
+        let categoryRevenue = [];
+        let dowNames = [];
+        let dowRevenue = [];
+        let dowOrders = [];
+        let hourNumbers = [];
+        let hourRevenue = [];
+        let hourOrders = [];
+        
+        try {
+            categoryNames = JSON.parse('{{ category_names_json|escapejs }}');
+            categoryRevenue = JSON.parse('{{ category_revenue_json|escapejs }}');
+            dowNames = JSON.parse('{{ dow_names_json|escapejs }}');
+            dowRevenue = JSON.parse('{{ dow_revenue_json|escapejs }}');
+            dowOrders = JSON.parse('{{ dow_orders_json|escapejs }}');
+            hourNumbers = JSON.parse('{{ hour_numbers_json|escapejs }}');
+            hourRevenue = JSON.parse('{{ hour_revenue_json|escapejs }}');
+            hourOrders = JSON.parse('{{ hour_orders_json|escapejs }}');
+        } catch (e) {
+            console.error("Error parsing sales analysis data:", e);
+        }
+        
+        // Generate random colors for the chart
+        function getRandomColors(count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                colors.push(`hsl(${(i * 360 / count) % 360}, 70%, 60%)`);
+            }
+            return colors;
+        }
+        
+        // Create category chart
+        const categoryChartElement = document.getElementById('categoryChart');
+        if (categoryChartElement && categoryNames.length > 0) {
+            const ctx = categoryChartElement.getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: categoryNames,
+                    datasets: [{
+                        data: categoryRevenue,
+                        backgroundColor: getRandomColors(categoryNames.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    let value = context.raw;
+                                    let total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    let percentage = Math.round((value / total) * 100);
+                                    return `${label}: $${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Day of week chart using JSON data
+        const dowChartElement = document.getElementById('dowChart');
+        if (dowChartElement && dowNames.length > 0) {
+            const ctx = dowChartElement.getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dowNames,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: dowRevenue,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1,
+                        yAxisID: 'y-revenue'
+                    }, {
+                        label: 'Orders',
+                        data: dowOrders,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1,
+                        yAxisID: 'y-orders',
+                        type: 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        'y-revenue': {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Revenue ($)'
+                            }
+                        },
+                        'y-orders': {
+                            type: 'linear',
+                            position: 'right',
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Order Count'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Hourly chart using JSON data
+        const hourlyChartElement = document.getElementById('hourlyChart');
+        if (hourlyChartElement) {
+            const ctx = hourlyChartElement.getContext('2d');
+            
+            // Fill in missing hours with zeros
+            const allHours = Array.from({length: 24}, (_, i) => i);
+            const completeHourRevenue = allHours.map(hour => {
+                const index = hourNumbers.indexOf(hour);
+                return index !== -1 ? hourRevenue[index] : 0;
+            });
+            const completeHourOrders = allHours.map(hour => {
+                const index = hourNumbers.indexOf(hour);
+                return index !== -1 ? hourOrders[index] : 0;
+            });
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: allHours.map(hour => `${hour}:00`),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: completeHourRevenue,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Orders',
+                        data: completeHourOrders,
+                        backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                        borderColor: 'rgb(153, 102, 255)',
+                        borderWidth: 1,
+                        type: 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
