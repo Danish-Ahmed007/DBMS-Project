@@ -1,0 +1,277 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_analytics_filters %}
+
+{% block title %}Analytics Dashboard | E-Commerce Store{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Analytics Dashboard</h1>
+            <p class="text-muted">Metrics and insights for your e-commerce store</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="?days=7" class="btn btn-sm btn-outline-primary {% if days == 7 %}active{% endif %}">Last 7 Days</a>
+                <a href="?days=30" class="btn btn-sm btn-outline-primary {% if days == 30 %}active{% endif %}">Last 30 Days</a>
+                <a href="?days=90" class="btn btn-sm btn-outline-primary {% if days == 90 %}active{% endif %}">Last 90 Days</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Total Revenue</h6>
+                    <div class="metric-value">${{ total_revenue|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Total Orders</h6>
+                    <div class="metric-value">{{ order_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Avg. Order Value</h6>
+                    <div class="metric-value">${{ avg_order_value|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Fraud Flag Rate</h6>
+                    <div class="metric-value">{{ fraud_rate|floatformat:1 }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Navigation -->
+    <div class="row mb-4">
+        <div class="col">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'analytics_dashboard' %}">Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'sales_analysis' %}">Sales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'product_analytics' %}">Products</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'customer_analytics' %}">Customers</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'fraud_analytics' %}">Fraud</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Sales Chart -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Sales Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products Table -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Top Performing Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.units_sold }}</td>
+                                    <td>${{ product.revenue|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No sales data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<!-- Data container with Django variables -->
+<div id="dashboard-data"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse JSON data directly with proper error handling
+        let chartLabels = [];
+        let revenueData = [];
+        let orderData = [];
+        
+        try {
+            chartLabels = JSON.parse('{{ chart_labels|escapejs }}');
+            revenueData = JSON.parse('{{ chart_revenue_data|escapejs }}');
+            orderData = JSON.parse('{{ chart_order_data|escapejs }}');
+        } catch (e) {
+            console.error("Error parsing dashboard data:", e);
+        }
+          // Check if we have data to display
+        if (!chartLabels.length || !revenueData.length || !orderData.length) {
+            console.warn("No sales data available to display in the dashboard");
+            return;
+        }
+        
+        // Initialize sales chart
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        pointBackgroundColor: '#4e73df',
+                        pointBorderColor: '#fff',
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: true,
+                        yAxisID: 'y-revenue',
+                        data: revenueData
+                    },
+                    {
+                        label: 'Orders',
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        pointBackgroundColor: '#1cc88a',
+                        pointBorderColor: '#fff', 
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: true,
+                        yAxisID: 'y-orders',
+                        data: orderData
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    'y-revenue': {
+                        type: 'linear',
+                        position: 'left',
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Revenue ($)'
+                        }
+                    },
+                    'y-orders': {
+                        type: 'linear',
+                        position: 'right',
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Order Count'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let value = context.raw;
+                                
+                                if (label === 'Revenue') {
+                                    return label + ': $' + value.toFixed(2);
+                                } else {
+                                    return label + ': ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
