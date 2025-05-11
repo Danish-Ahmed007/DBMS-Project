@@ -1,1 +1,292 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_analytics_filters %}
 
+{% block title %}Customer Analytics | E-Commerce Store{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Customer Analytics</h1>
+            <p class="text-muted">Customer behavior and segmentation insights</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="?days=7" class="btn btn-sm btn-outline-primary {% if days == 7 %}active{% endif %}">Last 7 Days</a>
+                <a href="?days=30" class="btn btn-sm btn-outline-primary {% if days == 30 %}active{% endif %}">Last 30 Days</a>
+                <a href="?days=90" class="btn btn-sm btn-outline-primary {% if days == 90 %}active{% endif %}">Last 90 Days</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Navigation -->
+    <div class="row mb-4">
+        <div class="col">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'analytics_dashboard' %}">Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'sales_analysis' %}">Sales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'product_analytics' %}">Products</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'customer_analytics' %}">Customers</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'fraud_analytics' %}">Fraud</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Customer Metrics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Avg. Customer Value</h6>
+                    <div class="metric-value">${{ avg_customer_value|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">New Customers</h6>
+                    <div class="metric-value">{{ new_customers }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Returning Customers</h6>
+                    <div class="metric-value">{{ returning_customers }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h6 class="metric-label text-white-50">Customer Retention</h6>
+                    {% if new_customers or returning_customers %}
+                        {% with total=new_customers|add:returning_customers %}
+                            <div class="metric-value">{{ returning_customers|multiply:100|divisibleby:total|floatformat:1 }}%</div>
+                        {% endwith %}
+                    {% else %}
+                        <div class="metric-value">0%</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- New vs Returning -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Customer Acquisition</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="customerAcquisitionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customer Locations -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Customer Locations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="locationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Customers Table -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Top Customers by Spend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Email</th>
+                                    <th>Orders</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers %}
+                                <tr>
+                                    <td>{{ customer.user__username }}</td>
+                                    <td>{{ customer.user__email }}</td>
+                                    <td>{{ customer.order_count }}</td>
+                                    <td>${{ customer.total_spent|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No customer data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<!-- Data container with Django variables -->
+<div id="analytics-data" 
+     data-new-customers="{{ new_customers|default:0 }}"
+     data-returning-customers="{{ returning_customers|default:0 }}">
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get data from data attributes
+        const dataElement = document.getElementById('analytics-data');
+        const newCustomers = parseInt(dataElement.dataset.newCustomers || 0);
+        const returningCustomers = parseInt(dataElement.dataset.returningCustomers || 0);
+        // Parse JSON data directly with proper error handling
+        let locationNames = [];
+        let locationCounts = [];
+        try {
+            locationNames = JSON.parse('{{ location_names_json|escapejs }}');
+            locationCounts = JSON.parse('{{ location_counts_json|escapejs }}');
+        } catch (e) {
+            console.error("Error parsing location data:", e);
+        }
+        
+        // Customer acquisition chart
+        const acquisitionCtx = document.getElementById('customerAcquisitionChart').getContext('2d');
+        
+        new Chart(acquisitionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['New Customers', 'Returning Customers'],
+                datasets: [{
+                    data: [newCustomers, returningCustomers],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw;
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Locations chart
+        const locationCtx = document.getElementById('locationChart').getContext('2d');
+        
+        // Generate colors
+        const locationColors = Array.from({length: locationNames.length}, (_, i) => 
+            `hsl(${(i * 360 / locationNames.length) % 360}, 70%, 60%)`
+        );
+        
+        new Chart(locationCtx, {
+            type: 'pie',
+            data: {
+                labels: locationNames,
+                datasets: [{
+                    data: locationCounts,
+                    backgroundColor: locationColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw;
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
