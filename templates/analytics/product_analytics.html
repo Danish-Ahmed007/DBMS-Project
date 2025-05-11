@@ -1,0 +1,273 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_analytics_filters %}
+
+{% block title %}Product Analytics | E-Commerce Store{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Product Analytics</h1>
+            <p class="text-muted">Detailed product performance metrics</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="?days=7" class="btn btn-sm btn-outline-primary {% if days == 7 %}active{% endif %}">Last 7 Days</a>
+                <a href="?days=30" class="btn btn-sm btn-outline-primary {% if days == 30 %}active{% endif %}">Last 30 Days</a>
+                <a href="?days=90" class="btn btn-sm btn-outline-primary {% if days == 90 %}active{% endif %}">Last 90 Days</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Navigation -->
+    <div class="row mb-4">
+        <div class="col">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'analytics_dashboard' %}">Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'sales_analysis' %}">Sales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'product_analytics' %}">Products</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'customer_analytics' %}">Customers</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'fraud_analytics' %}">Fraud</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Top Sellers -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Top Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_sellers %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.units_sold }}</td>
+                                    <td>${{ product.revenue|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No sales data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Most Viewed -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Most Viewed Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>View Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in most_viewed %}
+                                <tr>
+                                    <td>{{ product.product__name }}</td>
+                                    <td>{{ product.view_count }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No view data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Conversion Rates -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Product Conversion Rates</h5>
+                </div>                
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="conversionChart"></canvas>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Views</th>
+                                    <th>Orders</th>
+                                    <th>Conversion Rate</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in product_conversions %}
+                                <tr>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.views }}</td>
+                                    <td>{{ product.orders }}</td>
+                                    <td>{{ product.conversion_rate|floatformat:1 }}%</td>
+                                    <td>
+                                        {% with rate=product.conversion_rate %}
+                                        <div class="progress" style="height: 5px;">
+                                            {% if rate > 10 %}
+                                            <div class="progress-bar bg-success" style="width:{{ rate }}%"></div>
+                                            {% elif rate > 5 %}
+                                            <div class="progress-bar bg-warning" style="width:{{ rate }}%"></div>
+                                            {% else %}
+                                            <div class="progress-bar bg-danger" style="width:{{ rate }}%"></div>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No conversion data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Product conversion chart using JSON data
+    const conversionChart = document.getElementById('conversionChart');
+    
+    // Make sure canvas element is found before proceeding
+    if (conversionChart) {
+        const ctx = conversionChart.getContext('2d');
+        
+        // Try-catch block to handle potential JSON parsing errors
+        try {
+            const productNames = JSON.parse('{{ product_names_json|escapejs }}');
+            const conversionRates = JSON.parse('{{ conversion_rates_json|escapejs }}');
+            const views = JSON.parse('{{ product_views_json|escapejs }}');
+            const purchases = JSON.parse('{{ product_orders_json|escapejs }}');
+            
+            // Check if we have data to display
+            if (productNames.length > 0 && conversionRates.length > 0) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: productNames,
+                        datasets: [{
+                            label: 'Conversion Rate (%)',
+                            data: conversionRates,
+                            backgroundColor: conversionRates.map(rate => {
+                                if (rate > 10) return 'rgba(40, 167, 69, 0.7)';  // green
+                                if (rate > 5) return 'rgba(255, 193, 7, 0.7)';   // yellow
+                                return 'rgba(220, 53, 69, 0.7)';                // red
+                            }),
+                            borderColor: conversionRates.map(rate => {
+                                if (rate > 10) return 'rgb(40, 167, 69)';
+                                if (rate > 5) return 'rgb(255, 193, 7)';
+                                return 'rgb(220, 53, 69)';
+                            }),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',  // Horizontal bar chart
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Conversion Rate (%)'
+                                },
+                                max: Math.max(...conversionRates) * 1.1  // Add some padding
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const index = context.dataIndex;
+                                        return [
+                                            `Conversion Rate: ${context.raw.toFixed(1)}%`,
+                                            `Views: ${views[index]}`,
+                                            `Orders: ${purchases[index]}`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.error("No product conversion data available to display");
+            }
+        } catch (e) {
+            console.error("Error parsing product analytics data:", e);
+        }
+    }
+});
+</script>
+{% endblock %}
