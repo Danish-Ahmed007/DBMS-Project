@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to Our Newsletter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            background-color: #f5f5f5;
+            padding: 15px;
+            font-size: 12px;
+            text-align: center;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #6a11cb;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        h1, h2 {
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Our Newsletter!</h1>
+            <p>{{ current_date }}</p>
+        </div>
+        
+        <div class="content">
+            <h2>Thank You for Subscribing</h2>
+            
+            <p>Dear Subscriber,</p>
+            
+            <p>Thank you for joining our newsletter community! We're excited to have you on board and look forward to sharing the latest news, special offers, and product updates with you.</p>
+            
+            <p>As a subscriber, you'll be the first to know about:</p>
+            <ul>
+                <li>New product releases</li>
+                <li>Exclusive discounts and promotions</li>
+                <li>Industry insights and tips</li>
+                <li>Company news and events</li>
+            </ul>
+            
+            <p>In the meantime, feel free to explore our website and discover our wide range of products.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ site_url }}" class="button">Visit Our Store</a>
+            </div>
+            
+            <p>If you have any questions or feedback, don't hesitate to contact our team.</p>
+            
+            <p>Best regards,<br>
+            The E-Commerce Store Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>You're receiving this email because you signed up for our newsletter with the email: {{ email }}</p>
+            <p>If you'd like to unsubscribe, <a href="{{ unsubscribe_url }}">click here</a>.</p>
+            <p>&copy; 2025 E-Commerce Store. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
